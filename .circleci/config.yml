@@ -150,11 +150,12 @@ jobs:
             cd list_app
             echo DB_USERNAME=postgres > .env.test
             echo DB_PASSWORD=12345 > .env.test
-            echo DB_HOST=127.0.01 > .env.test
+            echo DB_HOST=127.0.0.1 > .env.test
       - run:
           name: Database setup
           command: |
             cd list_api
+            cat .env.test
             bundle exec rails db:schema:load --trace
       - run:
           name: List api test
