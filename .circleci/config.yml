@@ -143,7 +143,7 @@ jobs:
             bundle check || bundle install
       - run:
           name: Wait for DB
-          command: dockerizer -wait tcp://localhost:5432 -timeout 1m
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: Prepare for testing
           command: |
@@ -196,7 +196,7 @@ jobs:
           name: Linting list api
           command: |
             cd list_api
-            rubocop lint
+            rubocop --lint
 
   deploy-infrastructure:
     docker:
