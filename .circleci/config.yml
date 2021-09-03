@@ -101,6 +101,10 @@ jobs:
           command: |
             cd list_api
             bundle check || bundle install
+      - save_cache:
+          paths:
+            - "list_api/vendor/bundle"
+          key: v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
       - run:
           name: clean
           command: |
