@@ -1,0 +1,6 @@
+[submodule "list_api"]
+	path = list_api
+	url = git@github.com:Rudy-Zidan/list_api.git
+[submodule "list_app"]
+	path = list_app
+	url = git@github.com:Rudy-Zidan/list_app.git
