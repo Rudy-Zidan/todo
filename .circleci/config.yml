@@ -1,6 +1,14 @@
 version: 2.1
 
 commands:
+  load-submodules:
+    steps:
+      - run:
+          name: "Laod submodules"
+          command: |
+            git submodule sync --recursive
+            git submodule update --recursive --init
+
   destroy-environment:
     description: Destroy list api and list app cloudformation stacks given a workflow ID.
     parameters:
@@ -51,6 +59,7 @@ jobs:
       - image: circleci/node:16.8.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys: [list-app-build]
       - run:
@@ -68,6 +77,7 @@ jobs:
       - image: circleci/ruby:2.6.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys:
             - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
@@ -96,6 +106,7 @@ jobs:
       - image: circleci/node:16.8.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys: [list-app-build]
       - run:
@@ -109,6 +120,7 @@ jobs:
       - image: circleci/ruby:2.6.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys:
             - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
@@ -124,6 +136,7 @@ jobs:
       - image: circleci/node:16.8.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys: [list-app-build]
       - run:
@@ -137,6 +150,7 @@ jobs:
       - image: circleci/ruby:2.6.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys:
             - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
@@ -152,6 +166,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - load-submodules
       - run:
           name: Install utilties
           command: |
@@ -197,6 +212,7 @@ jobs:
       - image: python:3.8-alpine3.13
     steps:
       - checkout
+      - load-submodules
       - add_ssh_keys:
           fingerprints:
             - "8d:54:2b:44:2f:93:c5:27:7c:d1:13:5f:a9:f2:6f:84"
@@ -219,6 +235,7 @@ jobs:
       - image: circleci/ruby:2.6.0
     steps:
       - checkout
+      - load-submodules
       - restore_cache:
           keys:
             - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
@@ -267,6 +284,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - load-submodules
       - run:
           name: Install dependencies
           command: |
@@ -298,6 +316,7 @@ jobs:
       - image: circleci/ruby:2.6.0
     steps:
       - checkout
+      - load-submodules
       - add_ssh_keys:
           fingerprints:
             - "8d:54:2b:44:2f:93:c5:27:7c:d1:13:5f:a9:f2:6f:84"
@@ -328,9 +347,10 @@ jobs:
 
   smoke-test:
     docker:
-      - image: circleci/node:13.8.0
+      - image: circleci/node:16.8.0
     steps:
       - checkout
+      - load-submodules
       - run:
           name: Install dependencies
           command: |
@@ -338,12 +358,12 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_url)
-            echo $BACKEND_URL > "backend/todo_backend_url.txt"
+            BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/todo_backend_url)
+            echo $BACKEND_URL > "list_api/todo_backend_url.txt"
       - run:
           name: Backend smoke test.
           command: |
-            BACKEND_URL=$(cat backend/backend_url.txt)
+            BACKEND_URL=$(cat list_api/todo_backend_url.txt)
 
             if curl -s "http://${BACKEND_URL}/lists" | grep "200"
             then
@@ -372,6 +392,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - load-submodules
       - run:
           name: Install dependencies
           command: |
