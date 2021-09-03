@@ -80,8 +80,8 @@ jobs:
       - load-submodules
       - restore_cache:
           keys:
-            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
-            - gem-cache-v1
+            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+            - v1-gem-cache
       - run:
           name: Install bundler
           command: gem install bundler:1.17.3
@@ -153,8 +153,8 @@ jobs:
       - load-submodules
       - restore_cache:
           keys:
-            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
-            - gem-cache-v1
+            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+            - v1-gem-cache
       - run:
           name: Linting list api
           command: |
