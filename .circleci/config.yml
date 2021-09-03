@@ -138,6 +138,9 @@ jobs:
             cd list_api
             bundle check || bundle install
       - run:
+          name: Wait for DB
+          command: dockerizer -wait tcp://localhost:5432 -timeout 1m
+      - run:
           name: Prepare for testing
           command: |
             cd list_app
@@ -145,10 +148,13 @@ jobs:
             echo DB_PASSWORD=12345 > .env.test
             echo DB_HOST=127.0.01 > .env.test
       - run:
+          name: Database setup
+          command: bundle exec rails db:schema:load --trace
+      - run:
           name: List api test
           command: |
             cd list_api
-            rails test
+            bundle exec rails test
       - run:
           name: clean
           command: rm .env.test
