@@ -149,6 +149,7 @@ jobs:
           command: |
             cd list_api
             RAILS_ENV=test bundle exec rails db:schema:load --trace
+            RAILS_ENV=test bundle exec rails db:migrate
       - run:
           name: List api test
           command: |
