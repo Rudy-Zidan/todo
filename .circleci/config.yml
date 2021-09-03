@@ -153,11 +153,14 @@ jobs:
             echo DB_HOST=127.0.01 > .env.test
       - run:
           name: Database setup
-          command: bundle exec rails db:schema:load --trace
+          command: |
+            cd list_api
+            bundle exec rails db:schema:load --trace
       - run:
           name: List api test
           command: |
             cd list_api
+            cat .env.test
             bundle exec rails test
       - run:
           name: clean
@@ -487,20 +490,20 @@ workflows:
           requires: [build-list-api]
       - lint-list-app:
           requires: [build-list-app]
-      - deploy-infrastructure:
-          requires: [test-list-app, test-list-api, lint-list-app, lint-list-api]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-list-app:
-          requires: [run-migrations]
-      - deploy-list-api:
-          requires: [run-migrations]
-      - smoke-test:
-          requires: [deploy-list-api, deploy-list-app]
-      - cloudfront-update:
-          requires: [smoke-test]
+      # - deploy-infrastructure:
+      #     requires: [test-list-app, test-list-api, lint-list-app, lint-list-api]
+      #     filters:
+      #       branches:
+      #         only: [master]
+      # - configure-infrastructure:
+      #     requires: [deploy-infrastructure]
+      # - run-migrations:
+      #     requires: [configure-infrastructure]
+      # - deploy-list-app:
+      #     requires: [run-migrations]
+      # - deploy-list-api:
+      #     requires: [run-migrations]
+      # - smoke-test:
+      #     requires: [deploy-list-api, deploy-list-app]
+      # - cloudfront-update:
+      #     requires: [smoke-test]
