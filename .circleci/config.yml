@@ -145,23 +145,14 @@ jobs:
           name: Wait for DB
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
-          name: Prepare for testing
-          command: |
-            cd list_api
-            echo DB_USERNAME=postgres > .env.test
-            echo DB_PASSWORD=12345 >> .env.test
-            echo DB_HOST=127.0.0.1 >> .env.test
-      - run:
           name: Database setup
           command: |
             cd list_api
-            cat .env.test
             RAILS_ENV=test bundle exec rails db:schema:load --trace
       - run:
           name: List api test
           command: |
             cd list_api
-            cat .env.test
             bundle exec rails test
       - run:
           name: clean
