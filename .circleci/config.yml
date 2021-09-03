@@ -155,9 +155,6 @@ jobs:
           command: |
             cd list_api
             bundle exec rails test
-      - run:
-          name: clean
-          command: rm .env.test
             
   lint-list-app:
     docker:
