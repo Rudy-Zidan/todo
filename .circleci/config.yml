@@ -1,0 +1,443 @@
+version: 2.1
+
+commands:
+  destroy-environment:
+    description: Destroy list api and list app cloudformation stacks given a workflow ID.
+    parameters:
+      workflow_id:
+        type: string
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack \
+            --stack-name "todo-backend-<<parameters.workflow_id>>"
+
+            aws s3 rm --recursive "s3://udapeople-<<parameters.workflow_id>>"
+            aws cloudformation delete-stack \
+            --stack-name "todo-frontend-<<parameters.workflow_id>>"
+
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      workflow_id:
+        type: string
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            SUCCESS=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET "https://api.memstash.io/values/migration_<<parameters.workflow_id>>")
+
+            if [[ $SUCCESS == 1 ]]
+            then
+              cd list_api
+              rails db:rollback
+            fi
+
+  install_awscli_for_alpine:
+    steps:
+      - run:
+          name: Install awscli
+          when: on_fail
+          command: |
+            apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+          
+    
+jobs:
+  build-list-app:
+    docker:
+      - image: circleci/node:16.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [list-app-build]
+      - run:
+          name: Build list app
+          command: |
+            cd list_app
+            npm i
+            npm run build
+      - save_cache:
+          paths: [list_app/node_modules]
+          key: list-app-build
+
+  build-list-api:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
+            - gem-cache-v1
+      - run:
+          name: Install bundler
+          command: gem install bundler:1.17.3
+      - run:
+          name: Install gems
+          command: |
+            cd list_api
+            bundle install
+      - run:
+          name: clean
+          command: |
+            cd list_api
+            bundle clean --force
+      - save_cache:
+          paths:
+            - ~/.bundle
+          key: v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+
+
+  test-list-app:
+    docker:
+      - image: circleci/node:16.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [list-app-build]
+      - run:
+          name: List app test
+          command: |
+            cd list_app
+            npm run test:unit
+                
+  test-list-api:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
+            - gem-cache-v1
+      - run:
+          name: List api test
+          command: |
+            cd list_api
+            rails test
+            
+  lint-list-app:
+    docker:
+      - image: circleci/node:16.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [list-app-build]
+      - run:
+          name: Linting list app
+          command: |
+            cd list_app
+            npm run lint
+
+  lint-list-api:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
+            - gem-cache-v1
+      - run:
+          name: Linting list api
+          command: |
+            cd list_api
+            rubocop lint
+
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install utilties
+          command: |
+            yum install -y tar gzip
+      - run:
+          name: Ensure backend infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=todo \
+              --stack-name "todo-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure frontend infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=todo \
+              --stack-name "todo-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Add backend url to memstash
+          command: |
+            backend_url=`aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicDnsName' --filters "Name=tag:project,Values=todo" --output text`
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" \
+              --request PUT --data "$backend_url" https://api.memstash.io/values/todo_backend_url
+      - run:
+          name: Add backend ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=todo" \
+              --output text >> .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  configure-infrastructure:
+    docker:
+      - image: python:3.8-alpine3.13
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "8d:54:2b:44:2f:93:c5:27:7c:d1:13:5f:a9:f2:6f:84"
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
+      - install_awscli_for_alpine
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+
+  run-migrations:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
+            - gem-cache-v1
+      - run:
+          name: Check for pending migrations
+          command: |
+            cd list_api
+            echo 0 > pending_migration.txt
+
+            if grep -q "update your database then try again" \<<< $(rails db:abort_if_pending_migrations); then
+              echo 1 > pending_migration.txt
+            fi
+
+            echo "No pending migrations"
+      - run:
+          name: Run migrations
+          command: |
+            cd list_api
+            $migratable=$(cat pending_migration.txt)
+            
+            echo 0 > migration_status.txt
+            if [[ $migratable == 1 ]]
+            then
+              if grep -q "migrated" \<<< $(rails db:migrate); then
+                echo 1 > migration_status.txt
+              fi
+            fi
+      - run:
+          name: Send migration results to memstash
+          command: |
+            migration_status=$(cat migration_status.txt)
+
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" \
+              --request PUT --data "${migration_status}" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+      - run:
+          name: Install awscli
+          when: on_fail
+          command: |
+            sudo apt-get install python python-pip && pip install awscli
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}   
+
+  deploy-list-app:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            yum install -y gcc-c++ make
+            curl -sL https://rpm.nodesource.com/setup_16.x | bash -
+            yum install -y nodejs
+
+            cd list_app
+            npm i
+      - run:
+          name: Get list api url
+          command: |
+            BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/todo_backend_url)
+            export VUE_APP_BASE_API_URL="http://${BACKEND_URL}"
+      - run:
+          name: Deploy list app objects
+          command: |
+            cd list_api
+            npm run build
+
+            aws s3 cp --recursive dist "s3://todo-${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+                    
+  deploy-list-api:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "8d:54:2b:44:2f:93:c5:27:7c:d1:13:5f:a9:f2:6f:84"
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get install python ansible python-pip && pip install awscli
+      - run:
+          name: build docker image
+          command: |
+            docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: upload docker image
+          command: |
+            docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+            docker push ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Deploy backend
+          command: |
+            export DOCKER_IMAGE = ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+
+  smoke-test:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get install curl python python-pip && pip install awscli
+      - run:
+          name: Get backend url
+          command: |
+            BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_url)
+            echo $BACKEND_URL > "backend/todo_backend_url.txt"
+      - run:
+          name: Backend smoke test.
+          command: |
+            BACKEND_URL=$(cat backend/backend_url.txt)
+
+            if curl -s "http://${BACKEND_URL}/lists" | grep "200"
+            then
+              exit 0
+            else
+              exit 1
+            fi
+      - run:
+          name: Frontend smoke test.
+          command: |
+            URL="http://todo-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com"
+
+            if curl -s ${URL} | grep "200"
+            then
+              exit 0
+            else
+              exit 1
+            fi
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+
+  cloudfront-update:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            yum install -y gcc-c++ make
+            curl -sL https://rpm.nodesource.com/setup_16.x | bash -
+            yum install -y nodejs
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            export OLD_WORKFLOW_ID=$(aws cloudformation \
+              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+
+            echo "OLD_WORKFLOW_ID: $OLD_WORKFLOW_ID."
+
+            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+              --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --tags project=todo \
+              --stack-name "todo-cloudfront" \
+              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
+
+            if [[ "${STACKS[@]}" =~ "${OLD_WORKFLOW_ID}" ]]
+            then
+              aws cloudformation delete-stack \
+                --stack-name "todo-backend-${OLD_WORKFLOW_ID}"
+
+              aws s3 rm --recursive "s3://udapeople-${OLD_WORKFLOW_ID}"
+
+              aws cloudformation delete-stack \
+                --stack-name "todo-frontend-${OLD_WORKFLOW_ID}"
+            fi
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+
+workflows:
+  default:
+    jobs:
+      - build-list-app
+      - build-list-api
+      - test-list-app:
+          requires: [build-list-app]
+      - test-list-api:
+          requires: [build-list-api]
+      - lint-list-api:
+          requires: [build-list-api]
+      - lint-list-app:
+          requires: [build-list-app]
+      - deploy-infrastructure:
+          requires: [test-list-app, test-list-api, lint-list-app, lint-list-api]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-list-app:
+          requires: [run-migrations]
+      - deploy-list-api:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-list-api, deploy-list-app]
+      - cloudfront-update:
+          requires: [smoke-test]
