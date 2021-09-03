@@ -1,5 +1,16 @@
 version: 2.1
 
+references:
+  postgres: &postgres
+    image: circleci/postgres:latest-postgis
+    environment:
+      POSTGRES_URER: postgres
+      POSTGRES_DB: list_api_test
+      POSTGRES_PASSWORD: "12345"
+      DATABASE_URER: postgres
+      DATABASE_PASSWORD: "12345"
+      DATABASE_NAME: list_api_test
+
 commands:
   load-submodules:
     steps:
@@ -86,20 +97,15 @@ jobs:
           name: Install bundler
           command: gem install bundler:1.17.3
       - run:
-          name: Install gems
+          name: Bundle install
           command: |
             cd list_api
-            bundle install
+            bundle check || bundle install
       - run:
           name: clean
           command: |
             cd list_api
             bundle clean --force
-      - save_cache:
-          paths:
-            - ~/.bundle
-          key: v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
-
 
   test-list-app:
     docker:
@@ -118,18 +124,34 @@ jobs:
   test-list-api:
     docker:
       - image: circleci/ruby:2.6.0
+      - *postgres
     steps:
       - checkout
       - load-submodules
       - restore_cache:
           keys:
-            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
-            - gem-cache-v1
+            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+            - v1-gem-cache
+      - run:
+          name: Bundle install
+          command: |
+            cd list_api
+            bundle check || bundle install
+      - run:
+          name: Prepare for testing
+          command: |
+            cd list_app
+            echo DB_USERNAME=postgres > .env.test
+            echo DB_PASSWORD=12345 > .env.test
+            echo DB_HOST=127.0.01 > .env.test
       - run:
           name: List api test
           command: |
             cd list_api
             rails test
+      - run:
+          name: clean
+          command: rm .env.test
             
   lint-list-app:
     docker:
@@ -155,6 +177,11 @@ jobs:
           keys:
             - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
             - v1-gem-cache
+      - run:
+          name: Bundle install
+          command: |
+            cd list_api
+            bundle check || bundle install
       - run:
           name: Linting list api
           command: |
@@ -238,8 +265,13 @@ jobs:
       - load-submodules
       - restore_cache:
           keys:
-            - gem-cache-v1-{{ checksum "list_api/Gemfile.lock" }}
-            - gem-cache-v1
+            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+            - v1-gem-cache-
+      - run:
+          name: Bundle install
+          command: |
+            cd list_api
+            bundle check || bundle install
       - run:
           name: Check for pending migrations
           command: |
