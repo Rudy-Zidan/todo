@@ -147,10 +147,10 @@ jobs:
       - run:
           name: Prepare for testing
           command: |
-            cd list_app
+            cd list_api
             echo DB_USERNAME=postgres > .env.test
-            echo DB_PASSWORD=12345 > .env.test
-            echo DB_HOST=127.0.0.1 > .env.test
+            echo DB_PASSWORD=12345 >> .env.test
+            echo DB_HOST=127.0.0.1 >> .env.test
       - run:
           name: Database setup
           command: |
