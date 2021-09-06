@@ -33,7 +33,7 @@ commands:
             aws cloudformation delete-stack \
             --stack-name "todo-backend-<<parameters.workflow_id>>"
 
-            aws s3 rm --recursive "s3://udapeople-<<parameters.workflow_id>>"
+            aws s3 rm --recursive "s3://todo-<<parameters.workflow_id>>"
             aws cloudformation delete-stack \
             --stack-name "todo-frontend-<<parameters.workflow_id>>"
 
@@ -345,7 +345,36 @@ jobs:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
           workflow_id: ${CIRCLE_WORKFLOW_ID}
-                    
+
+  push-list-api-docker-image:
+    docker:
+      - image: circleci/ruby:2.6.0
+    steps:
+      - checkout
+      - load-submodules
+      - restore_cache:
+          keys:
+            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
+            - v1-gem-cache-
+      - run:
+          name: Bundle install
+          command: |
+            cd list_api
+            bundle check || bundle install
+      - run:
+          name: Build image
+          command: docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Docker login
+          command: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+      - run:
+          name: Push image
+          command: docker push ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID}
+
   deploy-list-api:
     docker:
       - image: circleci/ruby:2.6.0
@@ -361,15 +390,6 @@ jobs:
           name: Install dependencies
           command: |
             sudo apt-get install python ansible python-pip && pip install awscli
-      - run:
-          name: build docker image
-          command: |
-            docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}"
-      - run:
-          name: upload docker image
-          command: |
-            docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-            docker push ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Deploy backend
           command: |
@@ -480,19 +500,21 @@ workflows:
           requires: [build-list-api]
       - lint-list-app:
           requires: [build-list-app]
-      # - deploy-infrastructure:
-      #     requires: [test-list-app, test-list-api, lint-list-app, lint-list-api]
-      #     filters:
-      #       branches:
-      #         only: [master]
+      - deploy-infrastructure:
+          requires: [test-list-app, test-list-api, lint-list-app, lint-list-api]
+          filters:
+            branches:
+              only: [master]
       # - configure-infrastructure:
       #     requires: [deploy-infrastructure]
       # - run-migrations:
       #     requires: [configure-infrastructure]
       # - deploy-list-app:
       #     requires: [run-migrations]
-      # - deploy-list-api:
+      # - push-list-api-docker-image:
       #     requires: [run-migrations]
+      # - deploy-list-api:
+      #     requires: [run-migrations, push-list-api-docker-image]
       # - smoke-test:
       #     requires: [deploy-list-api, deploy-list-app]
       # - cloudfront-update:
