@@ -204,7 +204,7 @@ jobs:
           name: Ensure backend infrastructure exists
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
+              --template-file .circleci/cloud_formation/backend.yml \
               --tags project=todo \
               --stack-name "todo-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
@@ -212,7 +212,7 @@ jobs:
           name: Ensure frontend infrastructure exist
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
+              --template-file .circleci/cloud_formation/frontend.yml \
               --tags project=todo \
               --stack-name "todo-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
@@ -466,7 +466,7 @@ jobs:
               --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
 
             aws cloudformation deploy \
-              --template-file .circleci/files/cloudfront.yml \
+              --template-file .circleci/cloud_formation/cloudfront.yml \
               --tags project=todo \
               --stack-name "todo-cloudfront" \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
@@ -476,7 +476,7 @@ jobs:
               aws cloudformation delete-stack \
                 --stack-name "todo-backend-${OLD_WORKFLOW_ID}"
 
-              aws s3 rm --recursive "s3://udapeople-${OLD_WORKFLOW_ID}"
+              aws s3 rm --recursive "s3://todo-${OLD_WORKFLOW_ID}"
 
               aws cloudformation delete-stack \
                 --stack-name "todo-frontend-${OLD_WORKFLOW_ID}"
