@@ -196,7 +196,6 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - load-submodules
       - run:
           name: Install utilties
           command: |
