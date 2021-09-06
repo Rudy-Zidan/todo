@@ -21,6 +21,9 @@
     state: latest
     update_cache: yes
 
+- name: "add user to docker group"
+  shell: sudo usermod -aG docker $USER && newgrp docker
+
 - name: "add docker official gpg key"
   become: true
   shell: |
@@ -40,9 +43,6 @@
     name: ["docker-ce", "docker-ce-cli", "containerd.io"]
     state: latest
     update_cache: yes
-
-- name: "Add user to docker group"
-  shell: sudo usermod -aG docker $USER && newgrp docker
 
 - name: "install minikube"
   become: true
