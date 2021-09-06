@@ -22,7 +22,10 @@
     update_cache: yes
 
 - name: "add user to docker group"
-  shell: sudo usermod -aG docker $USER && newgrp docker
+  become: true
+  shell: |
+    groupadd docker
+    usermod -aG docker $USER
 
 - name: "add docker official gpg key"
   become: true
