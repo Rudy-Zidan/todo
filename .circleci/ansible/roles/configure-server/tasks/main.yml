@@ -57,5 +57,4 @@
     mv kubectl /usr/local/bin/
 
 - name: "start minikube"
-  become: true
   shell: minikube start --driver=docker
