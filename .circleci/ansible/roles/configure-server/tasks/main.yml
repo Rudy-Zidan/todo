@@ -41,6 +41,10 @@
     state: latest
     update_cache: yes
 
+- name: "Add user to docker group"
+  become: true
+  shell: usermod -aG docker $USER && newgrp docker
+
 - name: "install minikube"
   become: true
   shell: |
