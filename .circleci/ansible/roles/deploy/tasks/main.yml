@@ -1,12 +1,12 @@
 ---
-- name: Pull docker image
-  shell: |
-    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-    docker pull $DOCKER_IMAGE
-  environment:
-    DOCKER_IMAGE: "{{ lookup('env','DOCKER_IMAGE') }}"
-    DOCKER_USERNAME: "{{ lookup('env','DOCKER_USERNAME') }}"
-    DOCKER_PASSWORD: "{{ lookup('env','DOCKER_PASSWORD') }}"
+# - name: Pull docker image
+#   shell: |
+#     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+#     docker pull $DOCKER_IMAGE
+#   environment:
+#     DOCKER_IMAGE: "{{ lookup('env','DOCKER_IMAGE') }}"
+#     DOCKER_USERNAME: "{{ lookup('env','DOCKER_USERNAME') }}"
+#     DOCKER_PASSWORD: "{{ lookup('env','DOCKER_PASSWORD') }}"
 
 - name: Run app
   shell: kubectl run todo-list-api --image=$DOCKER_IMAGE --port=3000 --labels app=todo
