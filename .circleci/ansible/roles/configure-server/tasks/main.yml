@@ -21,12 +21,6 @@
     state: latest
     update_cache: yes
 
-- name: "add user to docker group"
-  become: true
-  shell: |
-    groupadd docker
-    usermod -aG docker $USER && newgrp docker
-
 - name: "add docker official gpg key"
   become: true
   shell: |
@@ -46,6 +40,17 @@
     name: ["docker-ce", "docker-ce-cli", "containerd.io"]
     state: latest
     update_cache: yes
+
+- name: add user to docker group
+  user:
+    name: ubuntu
+    groups:
+      - docker
+    append: yes
+
+- name: reset ssh connection to allow user changes to affect ansible user
+  meta:
+    reset_connection
 
 - name: "install minikube"
   become: true
