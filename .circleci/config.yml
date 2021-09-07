@@ -300,10 +300,17 @@ jobs:
       - run:
           name: Send migration results to memstash
           command: |
+            cd list_api
             migration_status=$(cat migration_status.txt)
 
             curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" \
               --request PUT --data "${migration_status}" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+      - run:
+          name: Clean up
+          command: |
+            cd list_api
+            rm migration_status.txt
+            rm pending_migration.txt
       - run:
           name: Install awscli
           when: on_fail
@@ -505,8 +512,8 @@ workflows:
               only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
       # - deploy-list-app:
       #     requires: [run-migrations]
       # - push-list-api-docker-image:
