@@ -52,7 +52,7 @@ commands:
             if [[ $SUCCESS == 1 ]]
             then
               cd list_api
-              rails db:rollback
+              RAILS_ENV=production rails db:rollback
             fi
 
   install_awscli_for_alpine:
@@ -279,7 +279,7 @@ jobs:
             cd list_api
             echo 0 > pending_migration.txt
 
-            if grep -q "update your database then try again" \<<< $(rails db:abort_if_pending_migrations); then
+            if grep -q "update your database then try again" \<<< $(RAILS_ENV=production rails db:abort_if_pending_migrations); then
               echo 1 > pending_migration.txt
             fi
 
@@ -288,7 +288,7 @@ jobs:
           name: Run migrations
           command: |
             cd list_api
-            $migratable=$(cat pending_migration.txt)
+            migratable=$(cat pending_migration.txt)
             
             echo 0 > migration_status.txt
             if [[ $migratable == 1 ]]
@@ -315,7 +315,7 @@ jobs:
           name: Install awscli
           when: on_fail
           command: |
-            sudo apt-get install python python-pip && pip install awscli
+            sudo apt-get update && apt-get install python python-pip && pip install awscli
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}   
 
