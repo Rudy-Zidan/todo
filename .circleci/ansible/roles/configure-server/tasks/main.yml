@@ -42,6 +42,7 @@
     update_cache: yes
 
 - name: add user to docker group
+  become: true
   user:
     name: ubuntu
     groups:
