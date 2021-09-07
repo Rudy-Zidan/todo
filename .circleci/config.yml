@@ -279,9 +279,8 @@ jobs:
             cd list_api
             echo 0 > pending_migration.txt
             export RAILS_ENV=production
-            result=$(rails db:abort_if_pending_migrations)
 
-            if rails db:abort_if_pending_migrations | grep -q "pending migration"; then
+            if $(rails db:abort_if_pending_migrations) | grep -q "pending migration"; then
               echo "Pending migrations exist"
               echo 1 > pending_migration.txt
             else
@@ -322,7 +321,8 @@ jobs:
           name: Install awscli
           when: on_fail
           command: |
-            sudo apt-get update && apt-get install python python-pip && pip install awscli
+            sudo apt-get update
+            sudo apt-get install python python-pip && pip install awscli
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}   
 
