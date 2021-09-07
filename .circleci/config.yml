@@ -278,8 +278,9 @@ jobs:
           command: |
             cd list_api
             echo 0 > pending_migration.txt
+            export RAILS_ENV=production
 
-            if grep -q "update your database then try again" \<<< $(RAILS_ENV=production rails db:abort_if_pending_migrations); then
+            if grep -q "update your database then try again" \<<< $(rails db:abort_if_pending_migrations); then
               echo 1 > pending_migration.txt
             fi
 
@@ -289,7 +290,8 @@ jobs:
           command: |
             cd list_api
             migratable=$(cat pending_migration.txt)
-            
+            export RAILS_ENV=production
+
             echo 0 > migration_status.txt
             if [[ $migratable == 1 ]]
             then
