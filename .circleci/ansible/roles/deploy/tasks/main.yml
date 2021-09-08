@@ -8,12 +8,12 @@
   shell: |
     sudo -E kubectl port-forward todo-list-api 80:3000
   register: result
-  until: result|succeeded
+  until: result is succeeded
   ignore_errors: yes
   retries: 5
   delay: 5
 
 - name: Report error
   fail:
-    msg: 'default(result.msg)'
-  when: not result|succeeded
+    msg: '{{ result }}'
+  when: result is not succeeded
