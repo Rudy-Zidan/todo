@@ -541,8 +541,8 @@ workflows:
           requires: [run-migrations]
       - push-list-api-docker-image:
           requires: [run-migrations, deploy-list-app]
-      # - deploy-list-api:
-      #     requires: [run-migrations, push-list-api-docker-image]
+      - deploy-list-api:
+          requires: [push-list-api-docker-image]
       # - smoke-test:
       #     requires: [deploy-list-api, deploy-list-app]
       # - cloudfront-update:
