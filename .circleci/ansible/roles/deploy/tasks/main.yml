@@ -11,7 +11,7 @@
   until: result is succeeded
   ignore_errors: yes
   retries: 5
-  delay: 5
+  delay: 30
 
 - name: Report error
   fail:
