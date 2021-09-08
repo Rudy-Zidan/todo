@@ -374,6 +374,7 @@ jobs:
       - image: docker:latest
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Install git
           command: apk add --update git curl
