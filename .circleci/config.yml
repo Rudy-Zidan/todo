@@ -405,10 +405,9 @@ jobs:
 
   deploy-list-api:
     docker:
-      - image: circleci/ruby:2.6.0
+      - image: python:3.8-alpine3.13
     steps:
       - checkout
-      - load-submodules
       - add_ssh_keys:
           fingerprints:
             - "8d:54:2b:44:2f:93:c5:27:7c:d1:13:5f:a9:f2:6f:84"
@@ -417,12 +416,13 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo apt-get install python ansible python-pip && pip install awscli
+            apk add --update ansible curl
       - run:
           name: Deploy backend
           command: |
             export DOCKER_IMAGE = ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+      - install_awscli_for_alpine
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
