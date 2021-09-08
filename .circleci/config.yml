@@ -280,7 +280,8 @@ jobs:
             echo 0 > pending_migration.txt
             export RAILS_ENV=production
 
-            if $(rails db:abort_if_pending_migrations) | grep -q "pending migration"; then
+            if grep -q "pending migration" \<<< "$(rails db:abort_if_pending_migrations)"
+            then
               echo "Pending migrations exist"
               echo 1 > pending_migration.txt
             else
@@ -292,11 +293,14 @@ jobs:
             cd list_api
             migratable=$(cat pending_migration.txt)
             export RAILS_ENV=production
+
             echo $migratable
             echo 0 > migration_status.txt
+
             if [[ $migratable == 1 ]]
             then
-              if grep -q "migrated" \<<< $(rails db:migrate); then
+              if grep -q "migrated" \<<< "$(rails db:migrate)"
+              then
                 echo "Migrations done"
                 echo 1 > migration_status.txt
               else
