@@ -525,8 +525,8 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
-      # - deploy-list-app:
-      #     requires: [run-migrations]
+      - deploy-list-app:
+          requires: [run-migrations]
       # - push-list-api-docker-image:
       #     requires: [run-migrations]
       # - deploy-list-api:
