@@ -352,16 +352,20 @@ jobs:
           name: Get list api url
           command: |
             BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/todo_backend_url)
-            export VUE_APP_BASE_API_URL="http://${BACKEND_URL}"
+            echo "http://${BACKEND_URL}" > list_app/backend_url.txt
       - run:
           name: Deploy list app objects
           command: |
+            cd list_app
+            export VUE_APP_BASE_API_URL=$(cat backend_url.txt)
             cat $VUE_APP_BASE_API_URL
 
-            cd list_app
             npm run build
 
             aws s3 cp --recursive dist "s3://todo-${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Clean up
+          command: rm list_app/backend_url.txt
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
@@ -384,7 +388,16 @@ jobs:
             bundle check || bundle install
       - run:
           name: Build image
-          command: docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}"
+          command: |
+            cd list_api
+
+            echo DB_HOST=$DB_HOST > .env
+            echo DB_USERNAME=$DB_USERNAME >> .env
+            echo DB_PASSWORD=$DB_PASSWORD >> .env
+            echo SECRET_KEY_BASE=$SECRET_KEY_BASE >> .env
+            echo RAILS_MAX_THREADS=$RAILS_MAX_THREADS >> .env
+
+            docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}" .
       - run:
           name: Docker login
           command: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
@@ -532,8 +545,8 @@ workflows:
           requires: [configure-infrastructure]
       - deploy-list-app:
           requires: [run-migrations]
-      # - push-list-api-docker-image:
-      #     requires: [run-migrations]
+      - push-list-api-docker-image:
+          requires: [run-migrations]
       # - deploy-list-api:
       #     requires: [run-migrations, push-list-api-docker-image]
       # - smoke-test:
