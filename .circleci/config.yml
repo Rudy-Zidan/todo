@@ -393,7 +393,7 @@ jobs:
             docker build -t "${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}" .
       - run:
           name: Docker login
-          command: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+          command: echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
       - run:
           name: Push image
           command: docker push ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
