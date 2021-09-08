@@ -356,7 +356,9 @@ jobs:
       - run:
           name: Deploy list app objects
           command: |
-            cd list_api
+            cat $VUE_APP_BASE_API_URL
+
+            cd list_app
             npm run build
 
             aws s3 cp --recursive dist "s3://todo-${CIRCLE_WORKFLOW_ID:0:7}"
