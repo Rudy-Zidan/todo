@@ -15,7 +15,7 @@ commands:
   load-submodules:
     steps:
       - run:
-          name: "Laod submodules"
+          name: "Load submodules"
           command: |
             git submodule sync --recursive
             git submodule update --recursive --init
@@ -376,17 +376,8 @@ jobs:
       - checkout
       - run:
           name: Install git
-          command: apk add --update git
+          command: apk add --update git curl
       - load-submodules
-      - restore_cache:
-          keys:
-            - v1-gem-cache-{{ checksum "list_api/Gemfile.lock" }}
-            - v1-gem-cache-
-      - run:
-          name: Bundle install
-          command: |
-            cd list_api
-            bundle check || bundle install
       - run:
           name: Build image
           command: |
