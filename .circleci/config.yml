@@ -420,7 +420,7 @@ jobs:
       - run:
           name: Deploy backend
           command: |
-            export DOCKER_IMAGE = ${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
+            export DOCKER_IMAGE=${DOCKER_PATH}/list_api:${CIRCLE_WORKFLOW_ID:0:7}
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
       - install_awscli_for_alpine
       - destroy-environment:
