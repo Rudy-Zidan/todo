@@ -10,8 +10,8 @@
   register: result
   until: result is succeeded
   ignore_errors: yes
-  retries: 5
-  delay: 30
+  retries: 6
+  delay: 10
 
 - name: Report error
   fail:
