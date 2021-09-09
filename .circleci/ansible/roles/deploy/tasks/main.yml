@@ -6,14 +6,5 @@
 
 - name: Allow external traffic
   shell: |
-    sudo -E kubectl port-forward todo-list-api 80:3000
-  register: result
-  until: result is not failed
-  ignore_errors: yes
-  retries: 6
-  delay: 10
-
-- name: Report error
-  fail:
-    msg: '{{ result }}'
-  when: result is failed
+    sleep 45
+    sudo -E kubectl port-forward todo-list-api 80:3000 &
