@@ -352,7 +352,7 @@ jobs:
           name: Get list api url
           command: |
             BACKEND_URL=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/todo_backend_url)
-            echo "http://${BACKEND_URL}" > list_app/backend_url.txt
+            echo "http://${BACKEND_URL}:3000" > list_app/backend_url.txt
       - run:
           name: Deploy list app objects
           command: |
@@ -448,7 +448,7 @@ jobs:
           command: |
             BACKEND_URL=$(cat list_api/todo_backend_url.txt)
 
-            if curl -s "http://${BACKEND_URL}/lists" | grep "200"
+            if curl -s "http://${BACKEND_URL}:3000/lists" | grep "200"
             then
               exit 0
             else
