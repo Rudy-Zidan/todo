@@ -448,7 +448,7 @@ jobs:
           command: |
             BACKEND_URL=$(cat list_api/todo_backend_url.txt)
 
-            if curl -s "http://${BACKEND_URL}:3000/lists" | grep "200"
+            if curl -I "http://${BACKEND_URL}:3000/lists" | grep "200"
             then
               exit 0
             else
@@ -459,7 +459,7 @@ jobs:
           command: |
             URL="http://todo-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com"
 
-            if curl -s ${URL} | grep "200"
+            if curl -I ${URL} | grep "200"
             then
               exit 0
             else
@@ -543,7 +543,7 @@ workflows:
           requires: [run-migrations, deploy-list-app]
       - deploy-list-api:
           requires: [push-list-api-docker-image]
-      # - smoke-test:
-      #     requires: [deploy-list-api, deploy-list-app]
+      - smoke-test:
+          requires: [deploy-list-api, deploy-list-app]
       # - cloudfront-update:
       #     requires: [smoke-test]
