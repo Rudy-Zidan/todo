@@ -5,6 +5,7 @@
     DOCKER_IMAGE: "{{ lookup('env','DOCKER_IMAGE') }}"
 
 - name: Allow external traffic
+  become: true
   shell: |
-    sleep 120
-    sudo -E kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 &
+    sleep 50
+    nohup kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 &
