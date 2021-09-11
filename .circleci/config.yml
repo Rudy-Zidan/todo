@@ -475,13 +475,6 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - load-submodules
-      - run:
-          name: Install dependencies
-          command: |
-            yum install -y gcc-c++ make
-            curl -sL https://rpm.nodesource.com/setup_16.x | bash -
-            yum install -y nodejs
       - run:
           name: Update cloudfront distribution
           command: |
@@ -545,5 +538,5 @@ workflows:
           requires: [push-list-api-docker-image]
       - smoke-test:
           requires: [deploy-list-api, deploy-list-app]
-      # - cloudfront-update:
-      #     requires: [smoke-test]
+      - cloudfront-update:
+          requires: [smoke-test]
