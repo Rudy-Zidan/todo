@@ -17,7 +17,7 @@
 - name: "install dependencies."
   become: yes
   apt:
-    name: ["curl", "wget", "apt-transport-https", "gnupg", "lsb-release", "screen"]
+    name: ["curl", "wget", "apt-transport-https", "gnupg", "lsb-release"]
     state: latest
     update_cache: yes
 
