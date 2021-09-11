@@ -8,6 +8,6 @@
   become: true
   shell: |
     sleep 50
-    kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 </dev/null >/dev/null 2>&1 & disown
+    screen -d -m bash -c "sudo -E kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000"
   args:
     executable: /bin/bash
