@@ -7,7 +7,8 @@
 - name: Allow external traffic
   become: true
   shell: |
-    sleep 50
-    nohup kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 </dev/null >/dev/null 2>&1 &
-  async: 50
-  poll: 0
+    systemctl enable --now atd.service
+    echo "kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 </dev/null >/dev/null 2>&1 &" > port_forward.sh
+    chmod +x port_forward.sh
+    at now + 1 minute -f port_forward.sh
+    sleep 60
