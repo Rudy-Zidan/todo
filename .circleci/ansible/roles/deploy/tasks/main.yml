@@ -6,5 +6,5 @@
 
 - name: Allow external traffic
   shell: |
-    sleep 80
+    sleep 120
     sudo -E kubectl port-forward --address 0.0.0.0 todo-list-api 3000:3000 &
